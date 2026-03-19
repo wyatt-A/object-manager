@@ -3,7 +3,7 @@ pub mod scanner;
 mod computer;
 
 use std::path::PathBuf;
-use array_lib::{ArrayDim, DimLabel};
+use array_lib::{ArrayDim, DimLabel, DimSize};
 use array_lib::cfl::num_complex::Complex32;
 use indexmap::IndexMap;
 use regex::Regex;
@@ -51,7 +51,7 @@ impl Default for ObjectManagerConf {
             total_xfer_timeout_sec: 120,
             scanner: Scanner::MrSolutions(ScannerProperties::default_mrsolutions()),
             raw_file_patterns: vec![PathBuf::from("results/*.cfl")],
-            object_dims: ArrayDim::new().with_dim_from_label(DimLabel::READ,512).with_dim_from_label(DimLabel::PHS1,8192),
+            object_dims: ArrayDim::new().with_dim_from_label(DimSize::READ(512)).with_dim_from_label(DimSize::PHS1(8192)),
             raw_layout: vec![(DimLabel::READ,512),(DimLabel::PHS1,8192),(DimLabel::SLICE,150)],
         }
     }
@@ -116,9 +116,7 @@ pub fn submit_request(req: DataRequest) -> Result<DataResponse, RequestError> {
         .server_bin
         .to_string_lossy()
         .to_string();
-    //info!("sending request to {}",info.scanner.host());
     let start = std::time::Instant::now();
-    //info!("running: {} {}",cmd,info.to_base64());
     let stdout = req.conf.scanner.host().run_cmd2(cmd, &[req.to_base64()]).map_err(|_|RequestError::SSHAuthentication)?;
     let re = Regex::new(r"\|\|\|(.*?)\|\|\|").expect("invalid regex");
     let cap = if let Some(cap) = re.captures(&stdout) {
@@ -129,7 +127,6 @@ pub fn submit_request(req: DataRequest) -> Result<DataResponse, RequestError> {
         panic!("failed to match regular expression from response");
     };
     let dur = start.elapsed().as_secs_f32();
-    //info!("request took {} seconds to fill",dur);
     Ok(DataResponse::from_base64(cap.as_str()))
 }
 
