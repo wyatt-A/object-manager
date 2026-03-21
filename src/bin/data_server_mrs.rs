@@ -1,9 +1,11 @@
 use clap::Parser;
-use object_manager::{decode_request, handle_request_mrs, write_to_stdout, Base64, DataResponse};
+use object_manager::{decode_request, write_to_stdout, Base64};
+use object_manager::data_collection_mrs::handle_request_mrs;
+use object_manager::request::DataResponse;
 
 #[derive(clap::Parser)]
 struct Args {
-    /// input file
+    /// base-64 encoded request string
     base64_request_string: String,
 }
 

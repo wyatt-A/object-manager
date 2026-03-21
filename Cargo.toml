@@ -18,3 +18,4 @@ wait-timeout = "0.2.1"
 walkdir = "2.5.0"
 whoami = "2.1.1"
 clap = { version = "4.6.0", features = ["derive"] }
+headfile = {git = "ssh://git@github.com/wyatt-A/headfile.git"}

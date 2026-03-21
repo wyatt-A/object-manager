@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 use super::computer::Computer;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ScannerProperties {
-    host: Computer,
+pub struct HostProperties {
+    pub host: Computer,
     pub server_bin: PathBuf,
-    tesla_image_code: String,
-    raw_base_directory: Option<PathBuf>,
+    pub tesla_image_code: String,
+    pub raw_base_directory: Option<PathBuf>,
 }
 
-impl ScannerProperties {
+impl HostProperties {
     pub fn new(
         hostname: impl AsRef<str>,
         username: impl AsRef<str>,
@@ -66,17 +66,29 @@ impl ScannerProperties {
             raw_base_directory: Some(PathBuf::from("/mrraw")),
         }
     }
+
+    pub fn scanner(&self) -> Scanner {
+        let hostname = self.host.hostname().unwrap_or("localhost".to_string());
+        match hostname.as_str() {
+            "stejskal" => Scanner::MrSolutions(self.clone()),
+            "nemo" => Scanner::Bruker(self.clone()),
+            "lx7-civm" => Scanner::Agilent(self.clone()),
+            _ => panic!("unsupported host name: {hostname}",)
+        }
+    }
+
+
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum Scanner {
-    Bruker(ScannerProperties),
-    MrSolutions(ScannerProperties),
-    Agilent(ScannerProperties),
+    Bruker(HostProperties),
+    MrSolutions(HostProperties),
+    Agilent(HostProperties),
 }
 
 impl Scanner {
-    pub fn properties(&self) -> ScannerProperties {
+    pub fn properties(&self) -> HostProperties {
         match &self {
             Scanner::Bruker(props) => props.clone(),
             Scanner::MrSolutions(props) => props.clone(),
@@ -120,21 +132,21 @@ impl Scanner {
 
     /// return the default scanner config for mrsolutions system
     pub fn default_mrsolutions() -> Self {
-        Self::MrSolutions(ScannerProperties::default_mrsolutions())
+        Self::MrSolutions(HostProperties::default_mrsolutions())
     }
 
     /// return the default scanner config for the bruker system
     pub fn default_bruker() -> Self {
-        Self::Bruker(ScannerProperties::default_bruker())
+        Self::Bruker(HostProperties::default_bruker())
     }
 
     /// return the default scanner config for the agilent system
     pub fn default_agilent() -> Self {
-        Self::Agilent(ScannerProperties::default_agilet())
+        Self::Agilent(HostProperties::default_agilet())
     }
 
     pub fn local_bruker_data<P: AsRef<Path>>(server_binary: P) -> Self {
-        Scanner::Bruker(ScannerProperties {
+        Scanner::Bruker(HostProperties {
             host: Computer::new_local(),
             server_bin: server_binary.as_ref().to_path_buf(),
             tesla_image_code: String::from("bt7"),
@@ -143,7 +155,7 @@ impl Scanner {
     }
 
     pub fn local_mrs_data<P: AsRef<Path>>(server_binary: P) -> Self {
-        Scanner::MrSolutions(ScannerProperties {
+        Scanner::MrSolutions(HostProperties {
             host: Computer::new_local(),
             server_bin: server_binary.as_ref().to_path_buf(),
             tesla_image_code: String::from("t9"),

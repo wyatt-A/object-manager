@@ -1,54 +1,132 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use array_lib::ArrayDim;
 use array_lib::io_cfl::read_cfl;
 use array_lib::io_mrd::{read_mrd, read_mrd_header};
 use array_lib::num_complex::Complex32;
-use crate::{ObjectManagerConf, RequestError};
+use crate::{RequestError};
 use glob;
+use headfile::Headfile;
 use indexmap::IndexMap;
+use crate::object::ObjectManager;
+use crate::request::{DataRequest, DataResponse, RequestType};
 
-pub fn collect_meta_mrs(conf:&ObjectManagerConf, obj_idx:usize) -> Result<IndexMap<String,String>,RequestError> {
-    let mut meta_files = vec![];
-    for pattern in &conf.meta_file_patterns {
-        let pat = conf.remote_dir.join(pattern);
-        for path in glob::glob(&pat.to_string_lossy().to_string())
-            .map_err(|e| RequestError::BadSearchPattern(e.to_string()))?.filter_map(Result::ok) {
-            meta_files.push(path)
-        }
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test() {
+
     }
 
-    // match on file type
-
-
-
-    todo!()
 
 }
 
-pub fn collect_traj_mrs(conf:&ObjectManagerConf, obj_idx:usize) -> Result<(Vec<Complex32>,ArrayDim),RequestError> {
 
-    let mut traj_files = vec![];
-    for pattern in &conf.traj_file_patterns {
-        let pat = conf.remote_dir.join(pattern);
-        for path in glob::glob(&pat.to_string_lossy().to_string())
-            .map_err(|e| RequestError::BadSearchPattern(e.to_string()))?.filter_map(Result::ok) {
-            traj_files.push(path)
+
+
+
+pub fn handle_request_mrs(req:&DataRequest) -> Result<DataResponse, RequestError> {
+    match req.r_type {
+        RequestType::Raw => {
+            let raw = collect_raw_mrs(&req.obj_man,req.object_index)?;
+            let resp = DataResponse {
+                raw_payload: Some(raw),
+                meta_payload: None,
+                traj_payload: None,
+                req: Some(req.clone()),
+                error: None,
+            };
+            Ok(resp)
+        } ,
+        RequestType::Trajectory => {
+            let base_dir = &req.obj_man.conf.remote_dir;
+            let patterns = &req.obj_man.conf.meta_file_patterns;
+            let traj = collect_traj_mrs(base_dir,patterns,req.object_index,req.obj_man.conf.single_traj_file)?;
+            let resp = DataResponse {
+                raw_payload: None,
+                meta_payload: None,
+                traj_payload: Some(traj),
+                req: Some(req.clone()),
+                error: None,
+            };
+            Ok(resp)
+        }
+        RequestType::Metadata => {
+            let base_dir = &req.obj_man.conf.remote_dir;
+            let patterns = &req.obj_man.conf.meta_file_patterns;
+            let meta = collect_meta_mrs(base_dir,patterns,req.object_index,req.obj_man.conf.single_meta_file)?;
+            let resp = DataResponse {
+                raw_payload: None,
+                meta_payload: Some(meta),
+                traj_payload: None,
+                req: Some(req.clone()),
+                error: None,
+            };
+            Ok(resp)
         }
     }
 
-    traj_files.sort();
 
-    let traj_to_load = if conf.single_traj_file {
-        &traj_files[0]
-    }else {
-        if obj_idx >= traj_files.len() {
-            return Err(RequestError::TrajFileIndexOutOfBounds(obj_idx,traj_files.len()))
-        }else {
-            &traj_files[obj_idx]
+}
+
+
+pub fn collect_meta_mrs(dir:impl AsRef<Path>, file_patterns:&[PathBuf], object_index:usize, single_file:bool) -> Result<IndexMap<String,String>,RequestError> {
+
+    let candidate_files = find_matches(dir, &file_patterns, true)?;
+
+    if candidate_files.is_empty() {
+        return Err(RequestError::CannotGetMetaData)
+    }
+
+    if single_file {
+        let file = &candidate_files[0];
+        todo!()
+    }
+
+    if object_index >= candidate_files.len() {
+        return Err(RequestError::CannotGetMetaData)
+    }
+
+    let file = &candidate_files[object_index];
+
+    todo!()
+}
+
+fn find_matches(base_dir:impl AsRef<Path>, search_patterns:&[PathBuf], sort:bool) -> Result<Vec<PathBuf>,RequestError> {
+
+    let search_pats:Vec<PathBuf> = search_patterns.iter().map(|pat|{
+        base_dir.as_ref().join(pat)
+    }).collect();
+
+    let mut matches = vec![];
+    for pat in search_pats {
+        for path in glob::glob(&pat.to_string_lossy().to_string())
+            .map_err(|e| RequestError::BadSearchPattern(e.to_string()))?.filter_map(Result::ok) {
+            matches.push(path)
         }
+    }
+    if sort {
+        matches.sort();
+    }
+    Ok(matches)
+}
+
+
+pub fn collect_traj_mrs(dir:impl AsRef<Path>, file_patterns:&[PathBuf], object_index:usize, single_traj:bool) -> Result<(Vec<Complex32>,ArrayDim),RequestError> {
+
+    let mut candidate_files = find_matches(dir, file_patterns, true)?;
+
+
+    let file = if single_traj {
+        &candidate_files[0]
+    }else {
+        if object_index >= candidate_files.len() {
+            return Err(RequestError::CannotGetViewTable)
+        }
+        &candidate_files[object_index]
     };
 
-    let file_ext = traj_to_load.extension();
+    let file_ext = file.extension();
     match file_ext {
         None => {
             // assume this is a standard cs stream table
@@ -58,7 +136,7 @@ pub fn collect_traj_mrs(conf:&ObjectManagerConf, obj_idx:usize) -> Result<(Vec<C
             if ext != "cfl" {
                 return Err(RequestError::UnsupportedTrajFileType(ext.to_string_lossy().to_string()))
             }
-            let (traj,dims) = read_cfl(traj_to_load);
+            let (traj,dims) = read_cfl(file);
             Ok((traj,dims))
         }
     }
@@ -66,11 +144,11 @@ pub fn collect_traj_mrs(conf:&ObjectManagerConf, obj_idx:usize) -> Result<(Vec<C
 
 
 
-pub fn collect_raw_mrs(conf:&ObjectManagerConf, obj_index:usize) -> Result<Vec<Complex32>, RequestError> {
+pub fn collect_raw_mrs(obj_man:&ObjectManager, obj_index:usize) -> Result<Vec<Complex32>, RequestError> {
 
     let mut raw_files = vec![];
-    for pattern in &conf.raw_file_patterns {
-        let pat = conf.remote_dir.join(pattern);
+    for pattern in &obj_man.conf.raw_file_patterns {
+        let pat = obj_man.conf.remote_dir.join(pattern);
         for path in glob::glob(&pat.to_string_lossy().to_string())
             .map_err(|e| RequestError::BadSearchPattern(e.to_string()))?.filter_map(Result::ok) {
             raw_files.push(path)
@@ -81,7 +159,7 @@ pub fn collect_raw_mrs(conf:&ObjectManagerConf, obj_index:usize) -> Result<Vec<C
         return Err(RequestError::DataNotFound)
     }
     raw_files.sort();
-    let buff_idx = conf.copy_planner.group_index(obj_index);
+    let buff_idx = obj_man.copy_planner.group_index(obj_index);
     if buff_idx >= raw_files.len() {
         return Err(RequestError::BufferIndexNotFound(buff_idx))
     }
@@ -91,7 +169,7 @@ pub fn collect_raw_mrs(conf:&ObjectManagerConf, obj_index:usize) -> Result<Vec<C
     let file_ext = buffer_to_open.extension()
         .ok_or(RequestError::RawFileExtNotDefined(buffer_to_open.to_string_lossy().to_string()))?;
 
-    let mut dst = conf.copy_planner.obj_dims().alloc(Complex32::ZERO);
+    let mut dst = obj_man.copy_planner.obj_dims().alloc(Complex32::ZERO);
 
     let (src,dims) = match  file_ext.to_str().unwrap() {
         "mrd" => {
@@ -105,12 +183,12 @@ pub fn collect_raw_mrs(conf:&ObjectManagerConf, obj_index:usize) -> Result<Vec<C
         _=> return Err(RequestError::UnsupportedRawFileType(file_ext.to_string_lossy().to_string()))
     };
 
-    let expected_dims = conf.copy_planner.src_dims(obj_index);
+    let expected_dims = obj_man.copy_planner.src_dims(obj_index);
     if dims.shape() != expected_dims.shape() {
         return Err(RequestError::UnexpectedDataLayout(expected_dims.shape().to_vec(),dims.shape().to_vec()))
     }
 
-    conf.copy_planner.copy_data(obj_index,&src,&mut dst);
+    obj_man.copy_planner.copy_data(obj_index,&src,&mut dst);
     Ok(dst)
 }
 
