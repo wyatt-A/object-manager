@@ -1,11 +1,12 @@
 use array_lib::ArrayDim;
 use array_lib::num_complex::Complex32;
+use clap::ValueEnum;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use crate::{Base64, RequestError};
 use crate::object::ObjectManager;
 
-#[derive(Debug,Serialize,Deserialize,Clone)]
+#[derive(Debug,Serialize,Deserialize,Clone,ValueEnum)]
 pub enum RequestType {
     /// raw MRI data
     Raw,
@@ -27,7 +28,7 @@ pub struct DataRequest {
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct DataResponse {
-    pub raw_payload:Option<Vec<Complex32>>,
+    pub raw_payload:Option<(Vec<Complex32>,ArrayDim)>,
     pub meta_payload:Option<IndexMap<String,String>>,
     pub traj_payload:Option<(Vec<Complex32>,ArrayDim)>,
     pub req: Option<DataRequest>,

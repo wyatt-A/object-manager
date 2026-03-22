@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use array_lib::{ArrayDim, DimSize};
 use array_lib::num_complex::Complex32;
 use indexmap::IndexMap;
@@ -126,7 +126,15 @@ impl From<ObjectManagerConf> for ObjectManager {
 }
 
 impl ObjectManager {
-    pub fn submit_raw_request(&self, object_index:usize) -> Result<Vec<Complex32>,RequestError> {
+
+
+    pub fn to_file(&self,filename: impl AsRef<Path>) {
+
+
+
+    }
+
+    pub fn submit_raw_request(&self, object_index:usize) -> Result<(Vec<Complex32>,ArrayDim),RequestError> {
         let req = DataRequest {
             object_index,
             obj_man: self.clone(),

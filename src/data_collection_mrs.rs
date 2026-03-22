@@ -144,7 +144,7 @@ pub fn collect_traj_mrs(dir:impl AsRef<Path>, file_patterns:&[PathBuf], object_i
 
 
 
-pub fn collect_raw_mrs(obj_man:&ObjectManager, obj_index:usize) -> Result<Vec<Complex32>, RequestError> {
+pub fn collect_raw_mrs(obj_man:&ObjectManager, obj_index:usize) -> Result<(Vec<Complex32>,ArrayDim), RequestError> {
 
     let mut raw_files = vec![];
     for pattern in &obj_man.conf.raw_file_patterns {
@@ -169,7 +169,9 @@ pub fn collect_raw_mrs(obj_man:&ObjectManager, obj_index:usize) -> Result<Vec<Co
     let file_ext = buffer_to_open.extension()
         .ok_or(RequestError::RawFileExtNotDefined(buffer_to_open.to_string_lossy().to_string()))?;
 
-    let mut dst = obj_man.copy_planner.obj_dims().alloc(Complex32::ZERO);
+
+    let obj_dims = obj_man.copy_planner.obj_dims();
+    let mut dst = obj_dims.alloc(Complex32::ZERO);
 
     let (src,dims) = match  file_ext.to_str().unwrap() {
         "mrd" => {
@@ -189,7 +191,7 @@ pub fn collect_raw_mrs(obj_man:&ObjectManager, obj_index:usize) -> Result<Vec<Co
     }
 
     obj_man.copy_planner.copy_data(obj_index,&src,&mut dst);
-    Ok(dst)
+    Ok((dst,obj_dims))
 }
 
 

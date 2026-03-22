@@ -7,8 +7,9 @@ mod configs;
 pub mod object;
 pub mod request;
 
-use std::io::Write;
-use std::path::PathBuf;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use array_lib::{ArrayDim, DimLabel, DimSize};
 use array_lib::cfl::num_complex::Complex32;
 use indexmap::IndexMap;
@@ -62,45 +63,6 @@ pub fn write_to_stdout(bytes: &[u8]) -> std::io::Result<()> {
     Ok(())
 }
 
-
-// /// server-side request handler for the MRS system. This interprets the data request and returns a
-// /// response
-// pub fn handle_request_mrs(req: &DataRequest) -> Result<DataResponse, RequestError> {
-//     match &req.r_type {
-//         RequestType::Raw => {
-//             let raw = collect_raw_mrs(&req.conf,req.object_index)?;
-//             Ok(DataResponse {
-//                 raw_payload: Some(raw),
-//                 meta_payload: None,
-//                 traj_payload: None,
-//                 req:Some(req.clone()),
-//                 error: None,
-//             })
-//         },
-//         RequestType::Metadata => {
-//             let meta = collect_meta_mrs(&req.conf,req.object_index)?;
-//             Ok(DataResponse {
-//                 raw_payload: None,
-//                 meta_payload: Some(meta),
-//                 traj_payload: None,
-//                 req:Some(req.clone()),
-//                 error: None,
-//             })
-//         },
-//         RequestType::Traj => {
-//             let traj = collect_traj_mrs(&req.conf,req.object_index)?;
-//             Ok(DataResponse {
-//                 raw_payload: None,
-//                 meta_payload: None,
-//                 traj_payload: Some(traj),
-//                 req:Some(req.clone()),
-//                 error: None,
-//             })
-//         }
-//     }
-// }
-
-
 pub trait Base64: Serialize + DeserializeOwned {
     fn to_base64(&self) -> String {
         use base64::Engine;
@@ -120,6 +82,32 @@ pub trait Base64: Serialize + DeserializeOwned {
     }
 }
 
+pub trait JsonState: Serialize + DeserializeOwned {
+    fn to_json(&self) -> String {
+        serde_json::to_string_pretty(self).expect("failed to serialize")
+    }
+
+    fn from_json(s: &str) -> Self {
+        serde_json::from_str(s).expect("failed to deserialize string")
+    }
+
+    fn from_json_file(file:impl AsRef<Path>) -> Self {
+        let mut f = File::open(file.as_ref().with_extension("json")).expect("failed to open file");
+        let mut s = String::new();
+        f.read_to_string(&mut s).expect("failed to read file");
+        Self::from_json(&s)
+    }
+
+    fn to_json_file(&self, file:impl AsRef<Path>) {
+        let s = self.to_json();
+        let mut f = File::create(file.as_ref().with_extension("json"))
+            .expect("failed to create file");
+        f.write_all(s.as_bytes()).expect("failed to write file");
+    }
+
+}
+
+impl JsonState for ObjectManager {}
 
 
 impl Base64 for RequestError {}
