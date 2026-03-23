@@ -116,7 +116,7 @@ impl Base64 for RequestError {}
 /// collecting data
 #[derive(Serialize, Deserialize, Debug)]
 pub enum RequestError {
-
+    IO(String),
     TrajFileIndexOutOfBounds(usize,usize),
     BadSearchPattern(String),
     DataNotReady,
@@ -150,4 +150,11 @@ pub enum RequestError {
     AgilentError,
     FailedToConvertStreamToRaw,
     SSHAuthentication,
+    BadPETable,
+}
+
+impl From<std::io::Error> for RequestError {
+    fn from(e: std::io::Error) -> Self {
+        RequestError::IO(e.to_string())
+    }
 }

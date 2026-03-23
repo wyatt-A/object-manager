@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use array_lib::ArrayDim;
 use array_lib::io_cfl::read_cfl;
@@ -80,7 +82,8 @@ pub fn collect_meta_mrs(dir:impl AsRef<Path>, file_patterns:&[PathBuf], object_i
 
     if single_file {
         let file = &candidate_files[0];
-        todo!()
+        let h = Headfile::from_file(file)?;
+        return Ok(h.entries())
     }
 
     if object_index >= candidate_files.len() {
@@ -88,8 +91,9 @@ pub fn collect_meta_mrs(dir:impl AsRef<Path>, file_patterns:&[PathBuf], object_i
     }
 
     let file = &candidate_files[object_index];
+    let h = Headfile::from_file(file)?;
+    Ok(h.entries())
 
-    todo!()
 }
 
 fn find_matches(base_dir:impl AsRef<Path>, search_patterns:&[PathBuf], sort:bool) -> Result<Vec<PathBuf>,RequestError> {
@@ -129,8 +133,7 @@ pub fn collect_traj_mrs(dir:impl AsRef<Path>, file_patterns:&[PathBuf], object_i
     let file_ext = file.extension();
     match file_ext {
         None => {
-            // assume this is a standard cs stream table
-            todo!()
+            read_stream_table(file)
         },
         Some(ext) => {
             if ext != "cfl" {
@@ -140,6 +143,27 @@ pub fn collect_traj_mrs(dir:impl AsRef<Path>, file_patterns:&[PathBuf], object_i
             Ok((traj,dims))
         }
     }
+}
+
+
+fn read_stream_table(file:impl AsRef<Path>) -> Result<(Vec<Complex32>,ArrayDim),RequestError> {
+    let mut f = File::open(file)?;
+    let mut s = String::new();
+    f.read_to_string(&mut s)?;
+    let entries:Vec<&str> = s.lines().collect();
+    let mut lut = vec![];
+    for val in entries {
+        let coord = val.parse::<i32>().map_err(|_|RequestError::BadPETable)?;
+        lut.push(
+            Complex32::new(coord as f32,0.)
+        )
+    }
+    if lut.len() % 2 != 0 {
+        return Err(RequestError::BadPETable)
+    }
+    let n = lut.len() / 2;
+    let dims = ArrayDim::from_shape(&[2,n]);
+    Ok((lut,dims))
 }
 
 
