@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use array_lib::DimSize::{PHS1, READ};
+use object_manager::JsonState;
 use object_manager::object::{ObjectManagerConf, RawLayout};
 use object_manager::scanner::HostProperties;
 
@@ -19,7 +20,7 @@ fn main() {
 
     let c = ObjectManagerConf {
         work_dir: Default::default(),
-        remote_dir: PathBuf::from(r"/Users/wyatt/stejskal_test_data/260316_00"),
+        remote_dir: PathBuf::from(r"D:/dev/test/26.wang.06/260316_00"),
         max_xfer_retries: 10,
         total_xfer_timeout_sec: 10*60,
         data_host: HostProperties::default_mrsolutions(),
@@ -32,6 +33,6 @@ fn main() {
         raw_layout,
     };
 
-    let mut f = File::create("configs/conf.json").unwrap();
-    f.write_all(c.to_json().as_bytes()).unwrap();
+    c.to_json_file("configs/conf.json");
+
 }

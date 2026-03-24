@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::copy_planner::CopyPlanner;
 use crate::request::{DataRequest, DataResponse, RequestType};
 use crate::scanner::{HostProperties, Scanner};
-use crate::{submit_request, RequestError};
+use crate::{submit_request, JsonState, RequestError};
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct ObjectManagerConf {
@@ -37,6 +37,8 @@ pub struct ObjectManagerConf {
     pub raw_layout: RawLayout,
 }
 
+impl JsonState for ObjectManagerConf {}
+
 impl Default for ObjectManagerConf {
     fn default() -> Self {
 
@@ -64,17 +66,6 @@ impl Default for ObjectManagerConf {
             raw_layout,
         }
     }
-}
-
-impl ObjectManagerConf {
-    pub fn to_json(&self) -> String {
-        serde_json::to_string_pretty(&self).unwrap()
-    }
-
-    pub fn from_json(s: &str) -> Self {
-        serde_json::from_str(s).unwrap()
-    }
-
 }
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
@@ -141,6 +132,9 @@ impl ObjectManager {
             r_type: RequestType::Raw,
         };
         let resp = submit_request(req)?;
+        if let Some(err) = resp.error {
+            return Err(err);
+        }
         Ok(resp.raw_payload.unwrap())
     }
 
@@ -151,6 +145,9 @@ impl ObjectManager {
             r_type: RequestType::Trajectory,
         };
         let resp = submit_request(req)?;
+        if let Some(err) = resp.error {
+            return Err(err);
+        }
         Ok(resp.traj_payload.unwrap())
     }
 
@@ -161,6 +158,9 @@ impl ObjectManager {
             r_type: RequestType::Metadata,
         };
         let resp = submit_request(req)?;
+        if let Some(err) = resp.error {
+            return Err(err);
+        }
         Ok(resp.meta_payload.unwrap())
     }
 }

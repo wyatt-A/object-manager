@@ -3,34 +3,28 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use array_lib::ArrayDim;
 use array_lib::io_cfl::read_cfl;
-use array_lib::io_mrd::{read_mrd, read_mrd_header};
+use array_lib::io_mrd::read_mrd;
 use array_lib::num_complex::Complex32;
 use crate::{RequestError};
 use glob;
 use headfile::Headfile;
 use indexmap::IndexMap;
-use crate::object::ObjectManager;
+use crate::copy_planner::CopyPlanner;
 use crate::request::{DataRequest, DataResponse, RequestType};
 
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test() {
-
-    }
-
-
-}
-
-
-
-
-
 pub fn handle_request_mrs(req:&DataRequest) -> Result<DataResponse, RequestError> {
+
+    let base_dir = if let Some(base_dir) = req.obj_man.data_host.base_dir().as_ref() {
+        base_dir.join(&req.obj_man.conf.remote_dir)
+    }else {
+        req.obj_man.conf.remote_dir.clone()
+    };
+
     match req.r_type {
         RequestType::Raw => {
-            let raw = collect_raw_mrs(&req.obj_man,req.object_index)?;
+            let patterns = &req.obj_man.conf.raw_file_patterns;
+            let copy_planner = &req.obj_man.copy_planner;
+            let raw = collect_raw_mrs(&base_dir,patterns,copy_planner,req.object_index)?;
             let resp = DataResponse {
                 raw_payload: Some(raw),
                 meta_payload: None,
@@ -41,9 +35,8 @@ pub fn handle_request_mrs(req:&DataRequest) -> Result<DataResponse, RequestError
             Ok(resp)
         } ,
         RequestType::Trajectory => {
-            let base_dir = &req.obj_man.conf.remote_dir;
-            let patterns = &req.obj_man.conf.meta_file_patterns;
-            let traj = collect_traj_mrs(base_dir,patterns,req.object_index,req.obj_man.conf.single_traj_file)?;
+            let patterns = &req.obj_man.conf.trajectory_file_patterns;
+            let traj = collect_traj_mrs(&base_dir,patterns,req.object_index,req.obj_man.conf.single_traj_file)?;
             let resp = DataResponse {
                 raw_payload: None,
                 meta_payload: None,
@@ -54,9 +47,8 @@ pub fn handle_request_mrs(req:&DataRequest) -> Result<DataResponse, RequestError
             Ok(resp)
         }
         RequestType::Metadata => {
-            let base_dir = &req.obj_man.conf.remote_dir;
             let patterns = &req.obj_man.conf.meta_file_patterns;
-            let meta = collect_meta_mrs(base_dir,patterns,req.object_index,req.obj_man.conf.single_meta_file)?;
+            let meta = collect_meta_mrs(&base_dir,patterns,req.object_index,req.obj_man.conf.single_meta_file)?;
             let resp = DataResponse {
                 raw_payload: None,
                 meta_payload: Some(meta),
@@ -168,22 +160,28 @@ fn read_stream_table(file:impl AsRef<Path>) -> Result<(Vec<Complex32>,ArrayDim),
 
 
 
-pub fn collect_raw_mrs(obj_man:&ObjectManager, obj_index:usize) -> Result<(Vec<Complex32>,ArrayDim), RequestError> {
+pub fn collect_raw_mrs(base_dir:impl AsRef<Path>, file_patterns:&[PathBuf], copy_planner:&CopyPlanner, object_index:usize) -> Result<(Vec<Complex32>,ArrayDim), RequestError> {
 
     let mut raw_files = vec![];
-    for pattern in &obj_man.conf.raw_file_patterns {
-        let pat = obj_man.conf.remote_dir.join(pattern);
+    let mut patterns = vec![];
+
+    for pattern in file_patterns {
+        let pat = base_dir.as_ref().join(pattern);
+        patterns.push(pat.to_string_lossy().to_string());
         for path in glob::glob(&pat.to_string_lossy().to_string())
             .map_err(|e| RequestError::BadSearchPattern(e.to_string()))?.filter_map(Result::ok) {
             raw_files.push(path)
         }
     }
 
+
+
     if raw_files.is_empty() {
-        return Err(RequestError::DataNotFound)
+        let debug = patterns.join("\n");
+        return Err(RequestError::DataNotFound(debug))
     }
     raw_files.sort();
-    let buff_idx = obj_man.copy_planner.group_index(obj_index);
+    let buff_idx = copy_planner.group_index(object_index);
     if buff_idx >= raw_files.len() {
         return Err(RequestError::BufferIndexNotFound(buff_idx))
     }
@@ -194,7 +192,7 @@ pub fn collect_raw_mrs(obj_man:&ObjectManager, obj_index:usize) -> Result<(Vec<C
         .ok_or(RequestError::RawFileExtNotDefined(buffer_to_open.to_string_lossy().to_string()))?;
 
 
-    let obj_dims = obj_man.copy_planner.obj_dims();
+    let obj_dims = copy_planner.obj_dims();
     let mut dst = obj_dims.alloc(Complex32::ZERO);
 
     let (src,dims) = match  file_ext.to_str().unwrap() {
@@ -209,12 +207,12 @@ pub fn collect_raw_mrs(obj_man:&ObjectManager, obj_index:usize) -> Result<(Vec<C
         _=> return Err(RequestError::UnsupportedRawFileType(file_ext.to_string_lossy().to_string()))
     };
 
-    let expected_dims = obj_man.copy_planner.src_dims(obj_index);
+    let expected_dims = copy_planner.src_dims(object_index);
     if dims.shape() != expected_dims.shape() {
         return Err(RequestError::UnexpectedDataLayout(expected_dims.shape().to_vec(),dims.shape().to_vec()))
     }
 
-    obj_man.copy_planner.copy_data(obj_index,&src,&mut dst);
+    copy_planner.copy_data(object_index,&src,&mut dst);
     Ok((dst,obj_dims))
 }
 

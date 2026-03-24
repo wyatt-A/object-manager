@@ -120,7 +120,7 @@ pub enum RequestError {
     TrajFileIndexOutOfBounds(usize,usize),
     BadSearchPattern(String),
     DataNotReady,
-    DataNotFound,
+    DataNotFound(String),
     BufferIndexNotFound(usize),
     RawFileExtNotDefined(String),
     UnsupportedRawFileType(String),

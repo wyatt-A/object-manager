@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 use array_lib::io_cfl::write_cfl;
 use clap::Parser;
+use headfile::Headfile;
 use object_manager::{JsonState, RequestError};
-use object_manager::object::ObjectManager;
+use object_manager::object::{ObjectManager, ObjectManagerConf};
 use object_manager::request::RequestType;
 
 #[derive(Debug,Parser)]
@@ -11,16 +12,21 @@ struct Args {
     object_manager: PathBuf,
     /// object index to copy
     object_index: usize,
-    // request type string
+    /// request type string
     #[arg(value_enum)]
     request_type: RequestType,
+    /// working directory to write data to
+    #[clap(short,long)]
+    work_dir:Option<PathBuf>,
 }
-
 
 fn main() -> Result<(), RequestError> {
 
     let args = Args::parse();
-    let o = ObjectManager::from_json_file(args.object_manager);
+
+    let conf = ObjectManagerConf::from_json_file(args.object_manager);
+    let o:ObjectManager = conf.into();
+
     assert!(args.object_index < o.copy_planner.n_objects(),"object_index out of bounds");
 
     let work_dir = &o.conf.work_dir;
@@ -33,8 +39,9 @@ fn main() -> Result<(), RequestError> {
         },
         RequestType::Metadata => {
             let metadata = o.submit_meta_request(args.object_index)?;
+            let h = Headfile::from_hash(&metadata);
             let out_file = work_dir.join(format!("meta_{}",args.object_index));
-            todo!() // write headfile string
+            h.to_file(out_file)?;
         },
         RequestType::Trajectory => {
             let (data,dims) = o.submit_traj_request(args.object_index)?;
