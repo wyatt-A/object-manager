@@ -107,6 +107,31 @@ pub trait JsonState: Serialize + DeserializeOwned {
 
 }
 
+pub trait TomlConf: Serialize + DeserializeOwned {
+    fn to_toml(&self) -> String {
+        toml::to_string(self).expect("failed to serialize")
+    }
+
+    fn from_toml(s: &str) -> Self {
+        toml::from_str(s).expect("failed to deserialize string")
+    }
+
+    fn from_toml_file(file:impl AsRef<Path>) -> Self {
+        let mut f = File::open(file.as_ref().with_extension("toml")).expect("failed to open file");
+        let mut s = String::new();
+        f.read_to_string(&mut s).expect("failed to read file");
+        Self::from_toml(&s)
+    }
+
+    fn to_toml_file(&self, file:impl AsRef<Path>) {
+        let s = self.to_toml();
+        let mut f = File::create(file.as_ref().with_extension("toml"))
+            .expect("failed to create file");
+        f.write_all(s.as_bytes()).expect("failed to write file");
+    }
+
+}
+
 impl JsonState for ObjectManager {}
 
 

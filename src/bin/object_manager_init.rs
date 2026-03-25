@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use array_lib::DimSize::{PHS1, READ};
-use object_manager::JsonState;
+use object_manager::{JsonState, TomlConf};
 use object_manager::object::{ObjectManagerConf, RawLayout};
 use object_manager::scanner::HostProperties;
 
@@ -33,6 +33,6 @@ fn main() {
         raw_layout,
     };
 
-    c.to_json_file("configs/conf.json");
+    c.to_json_file("configs/conf");
 
 }

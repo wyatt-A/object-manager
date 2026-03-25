@@ -8,8 +8,8 @@ use object_manager::request::RequestType;
 
 #[derive(Debug,Parser)]
 struct Args {
-    /// path to object manager state file
-    object_manager: PathBuf,
+    /// path to object manager config file
+    object_manager_conf: PathBuf,
     /// object index to copy
     object_index: usize,
     /// request type string
@@ -24,7 +24,7 @@ fn main() -> Result<(), RequestError> {
 
     let args = Args::parse();
 
-    let conf = ObjectManagerConf::from_json_file(args.object_manager);
+    let conf = ObjectManagerConf::from_json_file(args.object_manager_conf);
     let o:ObjectManager = conf.into();
 
     assert!(args.object_index < o.copy_planner.n_objects(),"object_index out of bounds");

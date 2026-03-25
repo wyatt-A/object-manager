@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::copy_planner::CopyPlanner;
 use crate::request::{DataRequest, DataResponse, RequestType};
 use crate::scanner::{HostProperties, Scanner};
-use crate::{submit_request, JsonState, RequestError};
+use crate::{submit_request, JsonState, RequestError, TomlConf};
 
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct ObjectManagerConf {
@@ -38,6 +38,7 @@ pub struct ObjectManagerConf {
 }
 
 impl JsonState for ObjectManagerConf {}
+impl TomlConf for ObjectManagerConf {}
 
 impl Default for ObjectManagerConf {
     fn default() -> Self {
