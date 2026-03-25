@@ -1,6 +1,6 @@
 
 pub mod scanner;
-mod computer;
+pub mod computer;
 mod copy_planner;
 pub mod data_collection_mrs;
 mod configs;
