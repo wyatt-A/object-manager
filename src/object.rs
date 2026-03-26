@@ -119,6 +119,9 @@ impl From<ObjectManagerConf> for ObjectManager {
 
 impl ObjectManager {
 
+    pub fn n_objects(&self) -> usize {
+        self.copy_planner.n_objects()
+    }
 
     pub fn to_file(&self,filename: impl AsRef<Path>) {
 
