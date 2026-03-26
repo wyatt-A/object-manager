@@ -34,18 +34,18 @@ fn main() -> Result<(), RequestError> {
     match args.request_type {
         RequestType::Raw => {
             let (data,dims) = o.submit_raw_request(args.object_index)?;
-            let out_file = work_dir.join(format!("raw_{}",args.object_index));
+            let out_file = work_dir.join(format!("raw-{}",args.object_index));
             write_cfl(out_file,&data,dims);
         },
         RequestType::Metadata => {
             let metadata = o.submit_meta_request(args.object_index)?;
             let h = Headfile::from_hash(&metadata);
-            let out_file = work_dir.join(format!("meta_{}",args.object_index));
+            let out_file = work_dir.join(format!("meta-{}",args.object_index));
             h.to_file(out_file)?;
         },
         RequestType::Trajectory => {
             let (data,dims) = o.submit_traj_request(args.object_index)?;
-            let out_file = work_dir.join(format!("traj_{}",args.object_index));
+            let out_file = work_dir.join(format!("traj-{}",args.object_index));
             write_cfl(out_file,&data,dims);
         }
     }

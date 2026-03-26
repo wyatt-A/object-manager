@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use array_lib::ArrayDim;
 use array_lib::num_complex::Complex32;
 use clap::ValueEnum;
@@ -14,6 +15,12 @@ pub enum RequestType {
     Trajectory,
     /// meta data request
     Metadata
+}
+
+impl Display for RequestType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Debug,Serialize,Deserialize,Clone)]
