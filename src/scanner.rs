@@ -180,4 +180,13 @@ impl Scanner {
         self.host_mut().set_host(hostname);
         self
     }
+
+    pub fn vendor(&self) -> String {
+        match &self {
+            Scanner::Bruker(_) => "bruker".to_string(),
+            Scanner::MrSolutions(_) => "mrsolutions".to_string(),
+            Scanner::Agilent(_) => "agilent".to_string(),
+        }
+    }
+
 }
