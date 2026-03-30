@@ -6,6 +6,7 @@ pub mod data_collection_mrs;
 mod configs;
 pub mod object;
 pub mod request;
+pub mod data_collection_bruker;
 
 use std::fs::File;
 use std::io::{Read, Write};
@@ -37,7 +38,11 @@ pub fn submit_request(req: DataRequest) -> Result<DataResponse, RequestError> {
         .to_string_lossy()
         .to_string();
     let start = std::time::Instant::now();
-    let stdout = req.obj_man.data_host.host().run_cmd2(cmd, &[req.to_base64()]).map_err(|_|RequestError::SSHAuthentication)?;
+
+    let req_b64 = req.to_base64();
+    println!("request: {}",req_b64);
+
+    let stdout = req.obj_man.data_host.host().run_cmd2(cmd, &[req_b64]).map_err(|_|RequestError::SSHAuthentication)?;
     let re = Regex::new(r"\|\|\|(.*?)\|\|\|").expect("invalid regex");
     let cap = if let Some(cap) = re.captures(&stdout) {
         cap.get(1)
@@ -141,6 +146,7 @@ impl Base64 for RequestError {}
 /// collecting data
 #[derive(Serialize, Deserialize, Debug)]
 pub enum RequestError {
+    BrukerData(String),
     IO(String),
     TrajFileIndexOutOfBounds(usize,usize),
     BadSearchPattern(String),

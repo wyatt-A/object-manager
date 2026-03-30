@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-array-lib = {git = "ssh://git@github.com/wyatt-A/array-lib.git", features = ["io-mrd","io-cfl"]}
+array-lib = {git = "ssh://git@github.com/wyatt-A/array-lib.git", features = ["io-mrd","io-cfl","io-bruker"]}
 base64 = "0.22.1"
 dirs = "6.0.0"
 glob = "0.3.3"
@@ -19,4 +19,6 @@ walkdir = "2.5.0"
 whoami = "2.1.1"
 clap = { version = "4.6.0", features = ["derive"] }
 headfile = {git = "ssh://git@github.com/wyatt-A/headfile.git"}
+bruker-jcamp-rs = {git = "ssh://git@github.com/wyatt-A/bruker-jcamp-rs.git"}
 toml = "1.0.7+spec-1.1.0"
+openssl = { version = "0.10", features = ["vendored"] }

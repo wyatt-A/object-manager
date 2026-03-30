@@ -132,7 +132,8 @@ impl CopyPlanner {
         group_idx
     }
 
-    /// converts an object index to raw layout indices for address calculations
+    /// converts an object index to raw layout indices for address calculations. Also returns the
+    /// buffer index for the object
     pub fn raw_indices(&self,obj_index:usize) -> (usize,Vec<usize>) {
         let (group_idx,local_idx) = self.resolve_split(obj_index);
         let a = ArrayDim::from_shape(&self.unvisited_sizes[group_idx]);
