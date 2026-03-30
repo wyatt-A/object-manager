@@ -1,0 +1,46 @@
+{
+  "work_dir": "",
+  "remote_dir": "/opt/nmrdata/24blocker05/data/20260320_153136_B26032000_24_blocker_05_1_1/14",
+  "max_xfer_retries": 10,
+  "total_xfer_timeout_sec": 600,
+  "data_host": {
+    "host": {
+      "hostname": "nemo",
+      "user": "qa"
+    },
+    "server_bin": "/opt/recon-utils/resource-server",
+    "tesla_image_code": "bt7",
+    "raw_base_directory": null
+  },
+  "raw_file_patterns": [
+    "fid"
+  ],
+  "meta_file_patterns": [
+    "acqp"
+  ],
+  "single_meta_file": true,
+  "trajectory_file_patterns": [
+    "/opt/lut/petableCS_stream/paravision_tables/low-rank/pe_tab_600/tab_00"
+  ],
+  "single_traj_file": true,
+  "obj_layout": [
+    {
+      "READ": 600
+    },
+    {
+      "PHS1": 44994
+    }
+  ],
+  "raw_layout": {
+    "Single": {
+      "buffer_layout": [
+        {
+          "READ": 600
+        },
+        {
+          "PHS1": 44994
+        }
+      ]
+    }
+  }
+}

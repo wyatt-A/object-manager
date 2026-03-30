@@ -1,0 +1,47 @@
+{
+  "work_dir": "",
+  "remote_dir": "26.wang.06/260316_00",
+  "max_xfer_retries": 10,
+  "total_xfer_timeout_sec": 600,
+  "data_host": {
+    "host": {
+      "hostname": "stejskal",
+      "user": "mrs"
+    },
+    "server_bin": "/c/workstation/bin/data_server_mrs.exe",
+    "tesla_image_code": "t9",
+    "raw_base_directory": "D:/dev/test"
+  },
+  "raw_file_patterns": [
+    "results/m*.cfl"
+  ],
+  "meta_file_patterns": [
+    "results/*.headfile"
+  ],
+  "single_meta_file": true,
+  "trajectory_file_patterns": [
+    "results/traj.cfl"
+  ],
+  "single_traj_file": true,
+  "obj_layout": [
+    {
+      "READ": 512
+    },
+    {
+      "PHS1": 8192
+    }
+  ],
+  "raw_layout": {
+    "BuffArray": {
+      "buffer_layout": [
+        {
+          "READ": 512
+        },
+        {
+          "PHS1": 8192
+        }
+      ],
+      "n": 150
+    }
+  }
+}
